@@ -128,5 +128,34 @@ namespace FASTER.devices
             this.pendingWrites.Enqueue(writeAction);
             return true;
         }
+        /// <summary>
+/// Asynchronously deletes the page blob associated with this BlobEntry.
+/// </summary>
+/// <returns>A task that represents the asynchronous delete operation.</returns>
+public async Task DeleteAsync()
+{
+    if (this.PageBlob == null)
+    {
+        throw new InvalidOperationException("Page blob has not been created yet or is already deleted.");
+    }
+
+    try
+    {
+        await this.PageBlob.Default.DeleteAsync(
+            conditions: new Azure.Storage.Blobs.Models.BlobRequestConditions() { IfMatch = this.ETag },
+            cancellationToken: this.azureStorageDevice.StorageErrorHandler.Token);
+
+        // Clear the references and mark the blob as deleted
+        this.PageBlob = null;
+        this.ETag = default;
+
+        Console.WriteLine("Page blob deleted successfully.");
+    }
+    catch (Azure.RequestFailedException ex)
+    {
+        Console.WriteLine($"Failed to delete the blob: {ex.Message}");
+        throw; // Re-throw to ensure the caller is aware of the failure
+    }
+}
     }
 }
